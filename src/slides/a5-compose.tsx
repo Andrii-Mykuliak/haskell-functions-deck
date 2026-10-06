@@ -197,8 +197,8 @@ const S17: React.FC = () => {
       {PIPE_ARROWS.map((x, i) => (
         <Arrow key={i} x1={x} y1={PY + 36} x2={x + 70} y2={PY + 36} step={3} delay={14 + i * 12} dur={10} color={C.dim} />
       ))}
-      <At x={96} y={790} w={1720} step={4} size={36}>
-        Оператор <M>(.)</M> створює нову функцію, а оператор <M>($)</M> лише застосовує функцію до конкретного значення.
+      <At x={96} y={780} w={1720} step={4} size={36}>
+        <M>(.)</M> – <A>композиція</A>: з функцій будує нову функцію. <M>($)</M> – <A>аплікація</A>: застосовує функцію до значення.
       </At>
       <Code
         x={96}
@@ -208,13 +208,118 @@ const S17: React.FC = () => {
         delay={16}
         stagger={10}
         code={`
-          double . square      -- нова функція
-          double $ square 3    -- значення 18
+          double . square      -- композиція: нова функція
+          double $ square 3    -- аплікація: значення 18
         `}
       />
     </Slide>
   );
 };
+
+/* 17b · Композиція (.) і аплікація ($): тип, пріоритет, асоціативність */
+const OpCard: React.FC<{
+  x: number;
+  step: number;
+  op: string;
+  name: string;
+  sig: string;
+  fixity: string;
+  fixityNote: React.ReactNode;
+  code: string;
+  note: React.ReactNode;
+}> = ({ x, step, op, name, sig, fixity, fixityNote, code, note }) => {
+  const { s } = useSteps();
+  const p = s(step, 0, POP);
+  return (
+    <div
+      style={{
+        position: "absolute",
+        left: x,
+        top: 330,
+        width: 840,
+        height: 520,
+        borderRadius: 20,
+        background: C.panel,
+        border: `3px solid ${C.line}`,
+        boxSizing: "border-box",
+        opacity: clamp01(p),
+        transform: `translateY(${(1 - p) * 40}px)`,
+      }}
+    >
+      <div style={{ position: "absolute", left: 36, top: 28, fontFamily: F.head, fontWeight: 600, fontSize: 40, color: C.text }}>
+        <span style={{ fontFamily: F.mono, fontWeight: 700, color: C.mint }}>{op}</span> – {name}
+      </div>
+      <div style={{ position: "absolute", left: 36, top: 96, fontFamily: F.mono, fontWeight: 600, fontSize: 27, color: C.dim, whiteSpace: "pre", fontVariantLigatures: "none" }}>
+        {sig}
+      </div>
+      <div style={{ position: "absolute", left: 36, top: 146, width: 770, display: "flex", alignItems: "baseline", gap: 18 }}>
+        <span style={{ fontFamily: F.mono, fontWeight: 700, fontSize: 30, color: C.amber, whiteSpace: "pre", flexShrink: 0 }}>{fixity}</span>
+        <span style={{ fontFamily: F.body, fontSize: 27, color: C.text }}>{fixityNote}</span>
+      </div>
+      <Code x={36} y={214} size={30} step={3} stagger={16} code={code} />
+      <div style={{ position: "absolute", left: 36, top: 400, width: 770, fontFamily: F.body, fontSize: 26, lineHeight: 1.4, color: C.dim, opacity: clamp01(s(4, 0)) }}>
+        {note}
+      </div>
+    </div>
+  );
+};
+
+const S17B: React.FC = () => (
+  <Slide title="Композиція (.) і аплікація ($)">
+    <Lead>
+      Обидва оператори правоасоціативні, але мають протилежні пріоритети: <M>(.)</M> зв’язує сильно, <M>($)</M> – найслабше.
+    </Lead>
+    <OpCard
+      x={96}
+      step={1}
+      op="(.)"
+      name="композиція"
+      sig="(.) :: (b -> c) -> (a -> b) -> a -> c"
+      fixity="infixr 9 ."
+      fixityNote={<>правоасоціативний, пріоритет 9</>}
+      code={`
+        double . square . (+1)
+        = double . [[+3@18|(]]square . (+1)[[+3@18|)]]
+        @3+40 -- результат: нова функція
+      `}
+      note={
+        <>
+          Композиція асоціативна: <M>(f . g) . h = f . (g . h)</M>, тому групування не змінює результат.
+        </>
+      }
+    />
+    <OpCard
+      x={984}
+      step={2}
+      op="($)"
+      name="аплікація"
+      sig="($) :: (a -> b) -> a -> b"
+      fixity="infixr 0 $"
+      fixityNote={<>правоасоціативний, пріоритет 0</>}
+      code={`
+        double $ square $ 3
+        = double $ [[+3@18|(]]square $ 3[[+3@18|)]]
+        = double (square 3)
+        = [[3@60|18]]
+      `}
+      note={
+        <>
+          Усе праворуч від <M>$</M> стає аргументом:
+          <br />
+          <span style={{ fontSize: 24, whiteSpace: "nowrap" }}>
+            <M>double $ square 3 + 1 = double (square 3 + 1) = 20</M>
+          </span>
+        </>
+      }
+    />
+    <At x={96} y={880} w={1720} step={5} size={32}>
+      Звичайна аплікація <M>f x</M> зв’язує найсильніше і лівоасоціативна: <M>f x y = (f x) y</M>.
+    </At>
+    <At x={96} y={950} w={1720} step={6} size={32}>
+      Разом: <M>double . square $ 3</M> = <M>(double . square) 3</M> = <M>18</M>.
+    </At>
+  </Slide>
+);
 
 /* 18 · Підсумок */
 const POINTS = [
@@ -248,5 +353,6 @@ export const a7Slides: SlideDef[] = [
   { id: "closure", title: "Замикання", steps: [40, 50, 60, 80, 55], C: S15 },
   { id: "decomposition", title: "Декомпозиція", steps: [40, 55, 120, 55], C: S16 },
   { id: "composition", title: "Композиція", steps: [40, 50, 50, 90, 70], C: S17 },
+  { id: "dot-dollar", title: "Композиція і аплікація", steps: [40, 60, 60, 110, 60, 55, 55], C: S17B },
 ];
 export const summarySlide: SlideDef = { id: "summary", title: "Підсумок", steps: [100], C: S18 };
